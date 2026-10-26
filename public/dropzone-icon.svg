@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 96 96" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:affinity="https://www.affinity.studio/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;">
+    <path id="DropBrackets" d="M10,23L10,10L23,10M86,73L86,86L73,86" style="fill:none;stroke:rgb(200,30,30);stroke-width:3px;"/>
+    <path id="DropPage" d="M29,16L58,16L74,32L74,73C74,76.866 70.866,80 67,80L29,80C25.134,80 22,76.866 22,73L22,23C22,19.134 25.134,16 29,16Z" style="fill:white;stroke:rgb(20,20,19);stroke-width:3px;"/>
+    <path id="DropFlap" d="M58,16L58,29C58,30.8 59.2,32 61,32L74,32L58,16Z" style="fill:rgb(254,226,226);stroke:rgb(20,20,19);stroke-width:3px;"/>
+    <path id="DropLines" d="M32.75,28L47.25,28C48.216,28 49,28.784 49,29.75C49,30.716 48.216,31.5 47.25,31.5L32.75,31.5C31.784,31.5 31,30.716 31,29.75C31,28.784 31.784,28 32.75,28ZM32.75,35.5L53.25,35.5C54.216,35.5 55,36.284 55,37.25C55,38.216 54.216,39 53.25,39L32.75,39C31.784,39 31,38.216 31,37.25C31,36.284 31.784,35.5 32.75,35.5Z" style="fill:rgb(210,206,198);"/>
+    <circle id="UploadBadge" cx="48" cy="59" r="13.5" style="fill:rgb(200,30,30);"/>
+    <path id="UploadArrow" d="M48,65.5L48,52.5M42.5,58L48,52.5L53.5,58" style="fill:none;stroke:rgb(248,247,245);stroke-width:3px;"/>
+</svg>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:affinity="https://www.affinity.studio/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;">
+    <path id="FaviconTile" d="M16,2L48,2C55.732,2 62,8.268 62,16L62,48C62,55.732 55.732,62 48,62L16,62C8.268,62 2,55.732 2,48L2,16C2,8.268 8.268,2 16,2Z" style="fill:rgb(248,247,245);stroke:rgb(226,222,215);stroke-width:1.5px;"/>
+    <path id="InteriorPaper" d="M28,10.75L44.5,10.75C46.709,10.75 48.5,12.541 48.5,14.75L48.5,49.25C48.5,51.459 46.709,53.25 44.5,53.25L28,53.25C25.791,53.25 24,51.459 24,49.25L24,14.75C24,12.541 25.791,10.75 28,10.75Z" style="fill:rgb(248,247,245);"/>
+    <path id="PdfSheet" d="M19,8L31,8L31,56L12,56C9.239,56 7,53.761 7,51L7,20L19,8Z" style="fill:rgb(200,30,30);"/>
+    <path id="PdfFold" d="M7,20L19,8L19,17C19,18.8 17.8,20 16,20L7,20Z" style="fill:rgb(153,27,27);"/>
+    <path id="PdfLines" d="M14.25,27.5L23.75,27.5C24.993,27.5 26,28.507 26,29.75C26,30.993 24.993,32 23.75,32L14.25,32C13.007,32 12,30.993 12,29.75C12,28.507 13.007,27.5 14.25,27.5ZM14.25,37.5L20.25,37.5C21.493,37.5 22.5,38.507 22.5,39.75C22.5,40.993 21.493,42 20.25,42L14.25,42C13.007,42 12,40.993 12,39.75C12,38.507 13.007,37.5 14.25,37.5Z" style="fill:rgb(248,247,245);"/>
+    <path id="JsonBrace" d="M36.5,10.75L42.5,10.75C46.8,10.75 48.2,13.2 48.2,18L48.2,24.8C48.2,29 50.8,32 54.25,32C50.8,32 48.2,35 48.2,39.2L48.2,46C48.2,50.8 46.8,53.25 42.5,53.25L36.5,53.25" style="fill:none;stroke:rgb(20,20,19);stroke-width:5.5px;"/>
+    <path id="InsightDiamond" d="M39,28L43,32L39,36L35,32L39,28Z" style="fill:rgb(200,30,30);"/>
+</svg>

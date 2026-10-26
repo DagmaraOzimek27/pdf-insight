@@ -1,6 +1,9 @@
 // Centralna konfiguracja stałych, limitów i progów aplikacji frontendowej (Single Source of Truth).
 
-export const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB zgodnie z wymogiem F-01
+export const BYTES_PER_KB = 1024;
+export const BYTES_PER_MB = BYTES_PER_KB * 1024;
+export const MAX_PDF_SIZE_MB = 10;
+export const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * BYTES_PER_MB; // 10 MB zgodnie z wymogiem F-01
 export const PDF_HEADER_PROBE_BYTES = 1024;
 export const PDF_MAGIC_SIGNATURE = '%PDF-';
 
@@ -25,4 +28,5 @@ export const MAX_CHUNKS_TO_ANALYZE = 6;
 
 export const HISTORY_STORAGE_KEY = 'pdf-insight:history:v1';
 export const MAX_HISTORY_ITEMS = 10;
+export const COPY_FEEDBACK_DURATION_MS = 2_200;
 export const MIN_SUPPORTED_VIEWPORT_PX = 360;

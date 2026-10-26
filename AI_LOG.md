@@ -9,7 +9,7 @@ Ten dokument opisuje w sposób transparentny przebieg budowy aplikacji **PDF Ins
 - **Środowisko programistyczne i agentowe:** Google Antigravity IDE (model z rodziny Gemini)
 - **Grafika wektorowa UI:** Affinity (natywne pliki źródłowe `.af` wyeksportowane przez Affinity MCP SDK do `logo.svg`, `favicon.svg` i `dropzone-icon.svg`)
 - **Model produkcyjny w aplikacji:** Google Gemini API (`gemini-3.5-flash-lite` z automatycznym *fallbackiem* w Cloudflare Workerze do `gemini-flash-lite-latest` i `gemini-3.8-flash`, plan rozliczeniowy *Pay-as-you-go Tier 1*)
-- **Automatyczne bramki jakości:** TypeScript (`strict`), ESLint (zakaz `any` i `console.log`), Prettier, Vitest (37 testów jednostkowych), lokalne środowisko wykonawcze `workerd` (`wrangler dev`) oraz pipeline GitHub Actions CI/CD
+- **Automatyczne bramki jakości:** TypeScript (`strict`), ESLint (zakaz `any` i `console.log`), Prettier, Vitest (40 testów jednostkowych), lokalne środowisko wykonawcze `workerd` (`wrangler dev`) oraz pipeline GitHub Actions CI/CD
 
 ---
 
@@ -238,6 +238,11 @@ Przechodzimy do Etapu 5 (finał): wdrożenie chmurowego backendu proxy z kluczem
   - Podczas generowania klucza zauważyłam nowy prefiks formatu klucza (`AQ...` zamiast historycznego `AIza...`) i zleciłam weryfikację jego kompatybilności z endpointem przed wdrożeniem produkcyjnym.
   - Podczas końcowego przeglądu kodu (*code review*) wychwycono przypadek brzegowy w `countSentences` (`src/lib/schema.ts`): bezwarunkowe maskowanie skrótów z flagą `gi` zjadało kropkę kończącą zdanie po polskim zaimku `im.`, słowie `ok.` oraz wielkoliterowych akronimach typu `MS.` lub `DOT.`. Rozbito reguły na kontekstowe *lookaheady* i *lookbehindy* oraz dopisano test regresyjny w `src/lib/schema.test.ts`.
   - Na domknięcie dokumentacji projektowej zleciłam przygotowanie karty znaku i systemu identyfikacji wizualnej w [`docs/BRANDING.md`](./docs/BRANDING.md) w oparciu o dedykowany skill projektowania logotypów (`SKILL.md`).
+  - Przed wysłaniem formularza przeprowadzono dodatkowy audyt bezpieczeństwa i UX publicznego repozytorium, na podstawie którego wdrożyłam 4 punktowe uszczelnienia wraz z testami jednostkowymi (łącznie 40 testów):
+    1. *Zamknięcie granicy zaufania `retryCodes` i eliminacja overfittingu w Workerze (`worker/src/index.ts`, `src/api/analyzeClient.ts`):* Usunięto przyjmowanie dowolnego tekstu `validationFeedback` od klienta (odrzucane kodem `400`) na rzecz zamkniętej listy kodów `ALLOWED_RETRY_CODES` tłumaczonej na instrukcję korekcyjną wyłącznie po stronie serwera; dodano neutralizację prób przedwczesnego domknięcia znacznika `</untrusted_pdf_document>` w tekście PDF oraz uogólniono `buildSystemInstruction()` (usuwając dosłowny przykład `1 PLN` z dokumentu testowego).
+    2. *Czyszczenie poprzedniego wyniku w UI i kontrola `localStorage` (`src/App.tsx`, `src/components/PdfDropzone.tsx`):* Rozpoczęcie analizy kolejnego pliku oraz wyczyszczenie historii natychmiast usuwają poprzedni `activeResult` z ekranu (eliminując ryzyko pozostawienia starej analizy pod komunikatem błędu nowego pliku); dodano też przełącznik pozwalający wyłączyć lokalny zapis historii dla dokumentów poufnych.
+    3. *Jawne ostrzeżenie przy przekroczeniu limitu skanów (`src/lib/pdfExtractor.ts`, `src/components/InsightResults.tsx`):* Wyodrębniono `omittedScanPageNumbers` i dodano wyraźny baner ostrzegawczy `role="alert"` ze wskazaniem numerów pominiętych stron, gdy dokument zawiera więcej niż `5` skanów.
+    4. *Precyzja dokumentacji bezpieczeństwa (`README.md`, `SPEC.md`, `AGENTS.md`):* Jawnie rozróżniono rolę `CORS` i lokalnego *rate limitera* instancji Workera od pełnego uwierzytelniania użytkowników w publicznym demo bez logowania oraz doprecyzowano charakterystykę czasową dla bardzo długich, wieloczęściowych raportów (`F-08`).
 
 ---
 

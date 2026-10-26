@@ -4,12 +4,12 @@ Ten dokument definiuje nienaruszalne zasady architektoniczne, standardy jakości
 
 ## 1. Architektura systemu
 
-- **Frontend (`src/`)**: Statyczna aplikacja SPA (React 18+, Vite, TypeScript `strict`) wdrażana na GitHub Pages (`/pdf-insight/`). Odpowiada za walidację i ekstrakcję treści PDF (`pdfjs-dist`), walidację odpowiedzi (`Zod`), prezentację wyników, eksport `.json` oraz lokalną historię analiz (`localStorage`).
-- **Backend Proxy (`worker/`)**: Bezstanowy Cloudflare Worker pośredniczący w komunikacji z Google Gemini API. Przechowuje klucz `GEMINI_API_KEY` w sekretach środowiskowych, egzekwuje politykę `CORS`, limity rozmiaru i _rate limiting_ oraz izoluje dane dokumentu przed atakami _prompt injection_.
+- **Frontend (`src/`)**: Statyczna aplikacja SPA (React 18+, Vite, TypeScript `strict`) wdrażana na GitHub Pages (`/pdf-insight/`). Odpowiada za walidację i ekstrakcję treści PDF (`pdfjs-dist`), walidację odpowiedzi (`Zod`), prezentację wyników, eksport `.json` oraz opcjonalną lokalną historię analiz (`localStorage`).
+- **Backend Proxy (`worker/`)**: Bezstanowy Cloudflare Worker pośredniczący w komunikacji z Google Gemini API. Przechowuje klucz `GEMINI_API_KEY` w sekretach środowiskowych, egzekwuje politykę `CORS`, limity rozmiaru i _rate limiting_ w pamięci instancji, waliduje schemat żądania oraz izoluje dane dokumentu przed atakami _prompt injection_.
 - **Struktura katalogów**:
   - `src/components/` — komponenty interfejsu użytkownika (prezentacja i interakcja),
   - `src/lib/` — konfiguracja (`config.ts`), teksty UI (`uiCopy.ts`), schemat Zod (`schema.ts`), walidacja i ekstrakcja PDF, magazyn historii,
-  - `src/api/` — klient HTTP komunikujący się z proxy (`VITE_API_URL`) z logiką walidacji i `1x retry`,
+  - `src/api/` — klient HTTP komunikujący się z proxy (`VITE_API_URL`) z logiką walidacji i `1x retry` opartą na zamkniętych kodach `retryCodes`,
   - `worker/src/` — konfiguracja (`config.ts`) i obsługa żądań API proxy.
 
 ## 2. Twarde zakazy (Zero-Tolerance Rules)
@@ -19,15 +19,20 @@ Ten dokument definiuje nienaruszalne zasady architektoniczne, standardy jakości
    - zakaz używania typu `any` (`@typescript-eslint/no-explicit-any: error`),
    - zakaz zostawiania wywołań `console.log` (`no-console: error`),
    - zakaz używania `dangerouslySetInnerHTML`.
-3. **Zakaz rozpraszania „magic numbers” i zahardkodowanych URL-i**: Wszystkie limity rozmiarów, progi znaków, czasy _timeout_, limity _retry_ oraz domyślne adresy deweloperskie muszą być zdefiniowane centralnie w `src/lib/config.ts` (frontend) lub `worker/src/config.ts` (backend). Głównym źródłem adresu backendu na frontendzie jest zawsze `import.meta.env.VITE_API_URL`.
+3. **Zakaz rozpraszania „magic numbers” i zahardkodowanych URL-i**: Wszystkie limity rozmiarów, progi znaków, czasy _timeout_, limity _retry_, zamknięte listy kodów oraz domyślne adresy deweloperskie muszą być zdefiniowane centralnie w `src/lib/config.ts` (frontend) lub `worker/src/config.ts` (backend). Głównym źródłem adresu backendu na frontendzie jest zawsze `import.meta.env.VITE_API_URL`.
 4. **Nienaruszalność kontraktu danych JSON**: Nie wolno usuwać ani zmieniać typów żadnego z pól bazowych schematu (`document`, `summary`, `keyPoints`, `entities`, `amounts`, `dates`, `keywords`). Brak danych w dokumencie zawsze oznacza `null` lub `[]` — model nie może zgadywać faktów. Daty muszą być w formacie ISO 8601 (`YYYY-MM-DD`), a waluty w 3-literowym standardzie ISO 4217 (`PLN`, `EUR`, `USD`).
-5. **Obrona przed Prompt Injection**: Treść wyekstrahowana z PDF oraz obrazy zeskanowanych stron są traktowane wyłącznie jako niezaufane dane zamknięte w separatorach `<untrusted_pdf_document>`, nigdy jako polecenia sterujące dla modelu AI.
+5. **Obrona przed Prompt Injection i ścisła granica zaufania Workera**:
+   - Treść wyekstrahowana z PDF oraz obrazy zeskanowanych stron są traktowane wyłącznie jako niezaufane dane zamknięte w separatorach `<untrusted_pdf_document>`, przy czym wystąpienia samego znacznika wewnątrz tekstu PDF muszą być neutralizowane przed wysłaniem do modelu.
+   - Instrukcja systemowa musi stosować ogólne reguły odporności na manipulację (bez dopasowywania pod konkretne kwoty czy sformułowania z jednego pliku testowego).
+   - Worker nie może nigdy przyjmować dowolnego tekstu korekcyjnego od klienta poza `<untrusted_pdf_document>` — przy `1x retry` dozwolona jest wyłącznie walidowana tablica zamkniętych kodów `retryCodes`, tłumaczona na instrukcję korekcyjną po stronie serwera.
 
 ## 3. Standardy UX, dostępności i kodu
 
 - Wszystkie komunikaty interfejsu użytkownika są po polsku i utrzymywane w wydzielonej warstwie tekstowej (`src/lib/uiCopy.ts`), bez marketingowych kalek językowych.
 - Interfejs musi być w pełni obsługiwany z klawiatury (`Tab`, `Enter`, `Space`, wyraźny `:focus-visible`), zachowywać wysoki kontrast oraz pełną responsywność od szerokości `360 px` bez poziomego przewijania.
-- Użytkownik musi widzieć czytelną informację, że treść wgranego pliku trafia do zewnętrznego API AI.
+- Użytkownik musi widzieć czytelną informację, że treść wgranego pliku trafia do zewnętrznego API AI, oraz mieć możliwość wyłączenia lokalnego zapisu historii w `localStorage`.
+- Rozpoczęcie analizy nowego pliku oraz wyczyszczenie historii musi natychmiast usuwać z ekranu poprzedni wynik (`activeResult`), aby wcześniejsza analiza nigdy nie pozostała widoczna podczas ładowania lub pod komunikatem błędu nowego dokumentu.
+- Przekroczenie limitu obrazów zeskanowanych stron (`MAX_SCANNED_PAGE_IMAGES`) musi wyświetlać wyraźne ostrzeżenie ze wskazaniem pominiętych numerów stron.
 - W razie niepowodzenia walidacji odpowiedzi AI klient wykonuje automatycznie dokładnie `1` ponowną próbę (_retry_), a następnie prezentuje polski komunikat błędu z opcją ponowienia.
 
 ## 4. Obowiązkowe bramki przed każdym commitem

@@ -6,7 +6,7 @@ Ten dokument stanowi część uprzęży sterującej dla agenta AI (**AI Harness*
 
 ## 1. Cel produktu i kryterium ukończenia (Definition of Done)
 
-**PDF Insight** to aplikacja webowa przyjmująca plik PDF od użytkownika i zwracająca w czasie **poniżej 30 sekund** (bez konieczności konfigurowania środowiska ani podawania klucza API przez osobę testującą):
+**PDF Insight** to aplikacja webowa przyjmująca plik PDF od użytkownika i zwracająca dla standardowych dokumentów (takich jak wielostronicowe umowy z załącznikiem skanowanym) w czasie **poniżej 30 sekund** — bez konieczności konfigurowania środowiska ani podawania klucza API przez osobę testującą:
 1. Zwięzłe podsumowanie dokumentu (3–5 zdań) w głównym języku dokumentu, bez domysłów spoza treści.
 2. Ustrukturyzowane dane zweryfikowane schematem **Zod** przed wyświetleniem i eksportem do pliku `.json`.
 
@@ -19,13 +19,13 @@ Ten dokument stanowi część uprzęży sterującej dla agenta AI (**AI Harness*
 | **F-01** | `MUST` | Wgrywanie pliku PDF metodą *drag & drop*, z dysku oraz z klawiatury (`Tab`, `Enter`/`Space`); limit rozmiaru `> 0 B` i `<= 10 MB`; weryfikacja sygnatury binarnej `%PDF-`. | `src/lib/pdfValidator.ts`, `src/components/PdfDropzone.tsx` |
 | **F-02** | `MUST` | Ekstrakcja tekstu strona po stronie w przeglądarce przy użyciu `pdfjs-dist` z poprawnym bundlowaniem workera dla podścieżki `/pdf-insight/`. | `src/lib/pdfExtractor.ts` |
 | **F-03** | `MUST` | Streszczenie dokumentu od 3 do 5 zdań w głównym języku dokumentu, oparte wyłącznie na treści źródłowej. | `worker/src/index.ts`, `src/lib/schema.ts` |
-| **F-04** | `MUST` | Walidacja odpowiedzi AI schematem Zod przed wyświetleniem; w przypadku błędnego formatu automatycznie dokładnie **1 ponowna próba (`1x retry`)**, a następnie czytelny komunikat błędu po polsku. | `src/lib/schema.ts`, `src/api/analyzeClient.ts` |
+| **F-04** | `MUST` | Walidacja odpowiedzi AI schematem Zod przed wyświetleniem; w przypadku błędnego formatu automatycznie dokładnie **1 ponowna próba (`1x retry`)** z zamkniętym zestawem typowanych kodów `retryCodes` (mapowanych na instrukcję korekcyjną wyłącznie po stronie Workera), a następnie czytelny komunikat błędu po polsku. | `src/lib/schema.ts`, `src/api/analyzeClient.ts`, `worker/src/index.ts` |
 | **F-05** | `MUST` | Czytelna prezentacja wszystkich 7 sekcji schematu, podgląd sformatowanego JSON-a (z kopiowaniem do schowka) oraz pobranie pliku `.json`; całkowity zakaz `dangerouslySetInnerHTML`. | `src/components/InsightResults.tsx` |
-| **F-06** | `MUST` | Obsługa trzech stanów interfejsu po polsku: stan pusty, stan ładowania z bieżącym etapem przetwarzania oraz stan błędu z przyciskiem „Spróbuj ponownie” dla ostatniego pliku. | `src/components/StatusBanner.tsx`, `src/components/EmptyStateGuide.tsx` |
+| **F-06** | `MUST` | Obsługa trzech stanów interfejsu po polsku: stan pusty, stan ładowania z bieżącym etapem przetwarzania oraz stan błędu z przyciskiem „Spróbuj ponownie” dla ostatniego pliku. Rozpoczęcie nowej analizy natychmiast czyści poprzedni wynik z ekranu. | `src/App.tsx`, `src/components/StatusBanner.tsx`, `src/components/EmptyStateGuide.tsx` |
 | **F-07** | `MUST` | Publiczne wdrożenie pod adresem `https://dagmaraozimek27.github.io/pdf-insight/` z automatycznym pipeline'em CI/CD (GitHub Actions). | `vite.config.ts`, `.github/workflows/deploy.yml` |
-| **F-08** | `SHOULD` | Obsługa wielostronicowych, długich dokumentów przez podział tekstu z zachowaniem granic stron (*chunking*) i scalenie wyników częściowych. | `src/lib/pdfExtractor.ts`, `src/api/analyzeClient.ts` |
-| **F-09** | `SHOULD` | Lokalna historia ostatnich 10 analiz w `localStorage` z walidacją każdego wpisu schematem Zod przy odczycie oraz opcją wyczyszczenia historii. | `src/lib/historyStorage.ts`, `src/components/HistoryPanel.tsx` |
-| **F-10** | `COULD` | Wykrywanie stron zeskanowanych (poniżej 25 znaków niebiałych na stronie), renderowanie ich na `<canvas>` do skompresowanego JPEG (base64) i przekazanie do multimodalnego modelu wizyjnego Gemini Flash. | `src/lib/pdfExtractor.ts`, `worker/src/index.ts` |
+| **F-08** | `SHOULD` | Obsługa wielostronicowych, długich dokumentów przez podział tekstu z zachowaniem granic stron (*chunking*, do `6` fragmentów po `24 000` znaków) i scalenie wyników częściowych (dla bardzo obszernych dokumentów wieloczęściowych czas analizy rośnie proporcjonalnie do liczby fragmentów). | `src/lib/pdfExtractor.ts`, `src/api/analyzeClient.ts` |
+| **F-09** | `SHOULD` | Lokalna historia ostatnich 10 analiz w `localStorage` z walidacją każdego wpisu schematem Zod przy odczycie, przełącznikiem wyłączenia zapisu lokalnego dla dokumentów poufnych oraz czyszczeniem historii i aktywnego widoku. | `src/lib/historyStorage.ts`, `src/components/HistoryPanel.tsx` |
+| **F-10** | `COULD` | Wykrywanie stron zeskanowanych (poniżej 25 znaków niebiałych na stronie), renderowanie do `5` skanów na `<canvas>` (JPEG base64) pod multimodalny model Gemini Flash oraz wyraźny baner ostrzegawczy w UI z listą pominiętych stron, jeśli dokument przekracza limit `5` skanów. | `src/lib/pdfExtractor.ts`, `src/components/InsightResults.tsx`, `worker/src/index.ts` |
 
 ---
 
@@ -70,14 +70,14 @@ Wszystkie pola bazowe są wymagane (schemat dopuszcza rozszerzanie przez `.passt
 
 ## 4. Matryca przypadków brzegowych i pułapek testowych (`Test_PDF_Insight_umowa_14-2026.pdf`)
 
-1. **Ukryty atak Prompt Injection (str. 4):** Niewidoczny tekst próbujący wymusić na modelu uznanie umowy za nieważną i wpisanie kwoty `1 PLN`.
-   - *Mechanizm obronny:* Separacja instrukcji systemowej (`systemInstruction`) od treści dokumentu zamkniętej w znacznikach `<untrusted_pdf_document>`, niska temperatura modelu (`0.1`) oraz sztywny `responseSchema`.
+1. **Ukryty atak Prompt Injection (str. 4):** Niewidoczny tekst próbujący wymusić na modelu uznanie umowy za nieważną i wpisanie fałszywej kwoty.
+   - *Mechanizm obronny:* Ogólna instrukcja bezpieczeństwa w `systemInstruction` (bez *overfittingu* pod konkretne kwoty z pliku testowego), separacja treści w znacznikach `<untrusted_pdf_document>` z neutralizacją prób przedwczesnego domknięcia tagu `</untrusted_pdf_document>`, zamknięte kody `retryCodes` po stronie Workera, niska temperatura modelu (`0.1`) oraz sztywny `responseSchema`.
 2. **Sekcja obcojęzyczna wewnątrz polskiego dokumentu (str. 10 — *Executive Summary* po angielsku):**
    - *Mechanizm obronny:* Jawna reguła wyboru głównego języka na podstawie dominującej treści całego dokumentu (`"pl"`), a nie pojedynczego załącznika lub streszczenia.
 3. **Zeskanowany załącznik bez warstwy tekstowej (str. 11 — *Aneks nr 1* zmieniający stawkę na `13 100,00 PLN` netto od `2027-04-01` oraz limit na `135` użytkowników):**
-   - *Mechanizm obronny:* Automatyczna detekcja strony bez warstwy tekstowej, render do obrazu JPEG `1.5x` i analiza multimodalna tekstu razem z obrazami skanów.
+   - *Mechanizm obronny:* Automatyczna detekcja strony bez warstwy tekstowej, render do obrazu JPEG `1.5x`, analiza multimodalna tekstu razem z obrazami skanów oraz jawne ostrzeżenie w UI przy przekroczeniu limitu `5` skanów.
 4. **Różnorodne zapisy walut i dat (`zł`, `PLN`, `EUR`, `USD`, `12.03.2026`, daty słowne):**
-   - *Mechanizm obronny:* Normalizacja po stronie modelu do ISO 4217 i ISO 8601 weryfikowana w `src/lib/schema.ts` z automatycznym `1x retry` zawierającym listę błędów Zod w przypadku odchyleń.
+   - *Mechanizm obronny:* Normalizacja po stronie modelu do ISO 4217 i ISO 8601 weryfikowana w `src/lib/schema.ts` z automatycznym `1x retry` opartym na kodach błędów `retryCodes`.
 
 ---
 
@@ -87,4 +87,4 @@ Wszystkie pola bazowe są wymagane (schemat dopuszcza rozszerzanie przez `.passt
 2. **Etap 2 — Przetwarzanie PDF:** Walidacja sygnatury binarnej `%PDF-`, ekstrakcja tekstu `pdfjs-dist`, renderowanie skanów do JPEG oraz *chunking* długich dokumentów + testy jednostkowe.
 3. **Etap 3 — Backend Proxy i klient API:** Bezstanowy Cloudflare Worker (`worker/`) z ochroną klucza `GEMINI_API_KEY`, CORS, *rate limitingiem* i izolacją *Prompt Injection* oraz klient `src/api/analyzeClient.ts` z `1x retry` + refaktoryzacja stałych do `config.ts` i konstytucja `AGENTS.md`.
 4. **Etap 4 — Oprawa wektorowa, warstwa tekstowa i UI:** Autorskie grafiki `.svg` zaprojektowane w Affinity, wydzielona polska warstwa tekstowa `src/lib/uiCopy.ts`, dostępny interfejs responsywny od `360 px` oraz historia analiz w `localStorage`.
-5. **Etap 5 — Wdrożenie produkcyjne, weryfikacja E2E i dokumentacja:** Publikacja Cloudflare Workera (Gemini API Tier 1), weryfikacja na 12-stronicowej umowie testowej, automatyczny deploy GitHub Actions na GitHub Pages oraz dokumentacja `README.md`, `AI_LOG.md` i `SPEC.md`.
+5. **Etap 5 — Wdrożenie produkcyjne, weryfikacja E2E, audyt bezpieczeństwa i dokumentacja:** Publikacja Cloudflare Workera (Gemini API Tier 1), weryfikacja na 12-stronicowej umowie testowej, domknięcie granicy zaufania `retryCodes` i stanów UI po przeglądzie bezpieczeństwa, automatyczny deploy GitHub Actions na GitHub Pages oraz pełna dokumentacja (`README.md`, `AI_LOG.md`, `SPEC.md`, `docs/BRANDING.md`).

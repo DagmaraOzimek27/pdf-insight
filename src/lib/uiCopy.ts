@@ -1,4 +1,4 @@
-import { MAX_HISTORY_ITEMS, MAX_PDF_SIZE_MB } from './config';
+import { MAX_HISTORY_ITEMS, MAX_PDF_SIZE_MB, MAX_SCANNED_PAGE_IMAGES } from './config';
 import type { DocumentType } from './schema';
 
 // Wydzielona warstwa tekstowa interfejsu — wszystkie komunikaty po polsku w jednym miejscu do wygodnej redakcji.
@@ -14,11 +14,13 @@ export const UI_COPY = {
     dragActiveTitle: 'Upuść plik PDF, aby rozpocząć analizę',
     selectButton: 'Wybierz plik PDF',
     selectAnotherButton: 'Wgraj inny dokument PDF',
-    constraintsHint: `Plik .pdf do ${MAX_PDF_SIZE_MB} MB — obsługiwane są zarówno dokumenty tekstowe, jak i strony ze skanami.`,
+    constraintsHint: `Plik .pdf do ${MAX_PDF_SIZE_MB} MB — obsługiwane są zarówno dokumenty tekstowe, jak i strony ze skanami (do ${MAX_SCANNED_PAGE_IMAGES} skanów na plik).`,
     keyboardHint: 'Obsługa z klawiatury: przejdź klawiszem Tab i naciśnij Enter lub Spację.',
     privacyLabel: 'Informacja o przesyłaniu danych:',
     privacyNotice:
       'Treść wgranego dokumentu PDF (tekst oraz obrazy zeskanowanych stron) jest przesyłana przez serwer pośredniczący do zewnętrznego API modelu AI (Google Gemini) wyłącznie w celu wykonania bieżącej analizy. Nie wgrywaj plików zawierających dane tajne lub szczególnie chronione.',
+    historyToggleLabel: 'Zapisuj wyniki ostatnich analiz lokalnie w tej przeglądarce',
+    historyToggleHint: '(możesz wyłączyć zapis w pamięci localStorage przed wgraniem dokumentu)',
   },
 
   emptyState: {
@@ -50,6 +52,8 @@ export const UI_COPY = {
       `Odczytywanie stron dokumentu i skanów: ${currentPage} z ${totalPages}...`,
     scansDetectedHint: (scanCount: number) =>
       `Wykryto strony bez warstwy tekstowej (${scanCount}) — dołączono ich obraz do analizy AI.`,
+    scansOmittedWarning: (renderedCount: number, omittedPages: ReadonlyArray<number>) =>
+      `Przekroczono limit ${MAX_SCANNED_PAGE_IMAGES} skanów: do analizy wizyjnej przekazano ${renderedCount} str., pominięto strony nr ${omittedPages.join(', ')}.`,
     analyzingDocument: 'Analiza treści dokumentu przez model AI...',
     retryingValidation: 'Odpowiedź modelu wymagała korekty formatu — ponawianie próby (1/1)...',
     analyzingChunk: (current: number, total: number) =>
@@ -73,6 +77,9 @@ export const UI_COPY = {
     copiedJsonButton: 'Skopiowano JSON',
     copyErrorHint: 'Schowek jest niedostępny w tej przeglądarce — użyj przycisku pobierania .json.',
     downloadJsonButton: 'Pobierz .json',
+    scanLimitWarningTitle: 'Uwaga — niepełny odczyt zeskanowanych stron:',
+    scanLimitWarningBody: (omittedPages: ReadonlyArray<number>) =>
+      `Dokument zawiera więcej skanów niż wynosi limit pojedynczej analizy (${MAX_SCANNED_PAGE_IMAGES} obrazów). Strony nr ${omittedPages.join(', ')} nie zostały odczytane wizyjnie — wynik może nie uwzględniać ich treści.`,
 
     documentTypes: {
       faktura: 'Faktura',
@@ -136,7 +143,7 @@ export const UI_COPY = {
 
   history: {
     heading: 'Ostatnie analizy',
-    hint: `Zapisane lokalnie w tej przeglądarce (maksymalnie ${MAX_HISTORY_ITEMS} ostatnich plików).`,
+    hint: `Zapisane wyłącznie lokalnie w tej przeglądarce (do ${MAX_HISTORY_ITEMS} plików, bez automatycznego wygaszania). Wyczyszczenie usuwa zapisy oraz aktywny wynik z ekranu.`,
     clearButton: 'Wyczyść historię',
     activeBadge: 'Wyświetlany',
     pagesShort: (pages: number) => `${pages} str.`,

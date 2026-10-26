@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { HISTORY_STORAGE_KEY, MAX_HISTORY_ITEMS } from './config';
+import { HISTORY_OPT_IN_STORAGE_KEY, HISTORY_STORAGE_KEY, MAX_HISTORY_ITEMS } from './config';
 import { pdfInsightSchema, type PdfInsightResult } from './schema';
 
 export const historyEntrySchema = z.object({
@@ -31,6 +31,37 @@ function generateEntryId(): string {
     return crypto.randomUUID();
   }
   return `hist-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export function loadHistorySavePreference(storage: Storage | null = getDefaultStorage()): boolean {
+  if (!storage) {
+    return true;
+  }
+
+  try {
+    const raw = storage.getItem(HISTORY_OPT_IN_STORAGE_KEY);
+    if (raw === 'false') {
+      return false;
+    }
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+export function setHistorySavePreference(
+  enabled: boolean,
+  storage: Storage | null = getDefaultStorage(),
+): void {
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.setItem(HISTORY_OPT_IN_STORAGE_KEY, enabled ? 'true' : 'false');
+  } catch {
+    // Wyciszenie przy zablokowanym Storage w trybie prywatnym.
+  }
 }
 
 // Wczytuje historię z localStorage i waliduje każdy wpis schematem Zod (odrzuca wpisy uszkodzone bez kasowania poprawnych).

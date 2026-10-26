@@ -5,6 +5,7 @@ import {
   MAX_CHUNKS_TO_ANALYZE,
   MAX_VALIDATION_ISSUES_IN_FEEDBACK,
   REQUEST_TIMEOUT_MS,
+  type ValidationRetryCode,
 } from '../lib/config';
 import type { ExtractedPdfDocument, ScannedPageImage } from '../lib/pdfExtractor';
 import { validatePdfInsight, type PdfInsightResult } from '../lib/schema';
@@ -34,7 +35,7 @@ interface ProxyAnalyzeRequest {
     chunkIndex: number;
     totalChunks: number;
   };
-  validationFeedback?: string;
+  retryCodes?: ValidationRetryCode[];
 }
 
 export class ApiClientError extends Error {
@@ -56,14 +57,41 @@ export function resolveApiBaseUrl(explicitUrl?: string): string {
   return DEFAULT_DEV_API_URL;
 }
 
-function formatValidationIssues(issues: ReadonlyArray<ZodIssue>): string {
-  return issues
-    .slice(0, MAX_VALIDATION_ISSUES_IN_FEEDBACK)
-    .map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join('.') : 'root';
-      return `${path}: ${issue.message}`;
-    })
-    .join('; ');
+// Mapuje błędy Zod na zamkniętą listę kodów korekcyjnych — Worker sam generuje zaufany tekst instrukcji.
+export function mapValidationIssuesToRetryCodes(
+  issues: ReadonlyArray<ZodIssue>,
+): ValidationRetryCode[] {
+  const codes: ValidationRetryCode[] = [];
+
+  for (const issue of issues) {
+    const rootField = issue.path[0];
+    let code: ValidationRetryCode = 'SCHEMA_MISMATCH';
+
+    if (rootField === 'document') {
+      code = 'DOCUMENT_METADATA_FORMAT';
+    } else if (rootField === 'summary') {
+      code = 'SUMMARY_SENTENCE_COUNT';
+    } else if (rootField === 'keyPoints') {
+      code = 'KEY_POINTS_COUNT';
+    } else if (rootField === 'entities') {
+      code = 'ENTITIES_FORMAT';
+    } else if (rootField === 'amounts') {
+      code = 'AMOUNTS_ISO4217';
+    } else if (rootField === 'dates') {
+      code = 'DATES_ISO8601';
+    } else if (rootField === 'keywords') {
+      code = 'KEYWORDS_FORMAT';
+    }
+
+    if (!codes.includes(code)) {
+      codes.push(code);
+    }
+    if (codes.length >= MAX_VALIDATION_ISSUES_IN_FEEDBACK) {
+      break;
+    }
+  }
+
+  return codes.length > 0 ? codes : ['SCHEMA_MISMATCH'];
 }
 
 function syncVerifiedDocumentMetadata(
@@ -174,13 +202,13 @@ function extractProxyErrorMessage(body: unknown, fallback: string): string {
 
 // Wysyła żądanie do API proxy i waliduje wynik w Zod; przy błędnej odpowiedzi AI wykonuje dokładnie 1 ponowną próbę (sekcja 04).
 export async function requestValidatedInsight(
-  basePayload: Omit<ProxyAnalyzeRequest, 'validationFeedback'>,
+  basePayload: Omit<ProxyAnalyzeRequest, 'retryCodes'>,
   options: AnalyzeClientOptions = {},
 ): Promise<PdfInsightResult> {
   const endpointUrl = `${resolveApiBaseUrl(options.apiUrl)}/api/analyze`;
   const fetchImpl = options.fetchImpl ?? fetch;
 
-  let feedbackForRetry: string | undefined;
+  let retryCodesForNextAttempt: ValidationRetryCode[] | undefined;
 
   for (let attempt = 1; attempt <= MAX_AI_ATTEMPTS; attempt += 1) {
     if (attempt === 2) {
@@ -190,9 +218,10 @@ export async function requestValidatedInsight(
       });
     }
 
-    const requestPayload: ProxyAnalyzeRequest = feedbackForRetry
-      ? { ...basePayload, validationFeedback: feedbackForRetry }
-      : basePayload;
+    const requestPayload: ProxyAnalyzeRequest =
+      retryCodesForNextAttempt && retryCodesForNextAttempt.length > 0
+        ? { ...basePayload, retryCodes: retryCodesForNextAttempt }
+        : basePayload;
 
     const { status, body } = await postAnalyzeOnce(
       endpointUrl,
@@ -201,7 +230,7 @@ export async function requestValidatedInsight(
       options.signal,
     );
 
-    // Błędy klienta/limitów (400, 403, 413, 429, 500) nie wynikają z formatu JSON modelu — nie ponawiamy ich.
+    // Błędy klienta/limitów (400, 403, 404, 413, 429, 500) nie wynikają z formatu JSON modelu — nie ponawiamy ich.
     if (
       status === 400 ||
       status === 403 ||
@@ -221,8 +250,7 @@ export async function requestValidatedInsight(
 
     if (status !== 200) {
       if (attempt === 1) {
-        feedbackForRetry =
-          'Poprzednia odpowiedź nie była poprawnym obiektem JSON zgodnym ze schematem.';
+        retryCodesForNextAttempt = ['INVALID_JSON_RESPONSE'];
         continue;
       }
       throw new ApiClientError(
@@ -251,7 +279,7 @@ export async function requestValidatedInsight(
     }
 
     if (attempt === 1) {
-      feedbackForRetry = formatValidationIssues(validation.error.issues);
+      retryCodesForNextAttempt = mapValidationIssuesToRetryCodes(validation.error.issues);
       continue;
     }
 

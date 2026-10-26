@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { HISTORY_STORAGE_KEY, MAX_HISTORY_ITEMS } from './config';
-import { clearHistory, loadHistory, saveResultToHistory } from './historyStorage';
+import {
+  clearHistory,
+  loadHistory,
+  loadHistorySavePreference,
+  saveResultToHistory,
+  setHistorySavePreference,
+} from './historyStorage';
 import type { PdfInsightResult } from './schema';
 
 class MemoryStorage implements Storage {
@@ -140,6 +146,17 @@ describe('historyStorage (F-09)', () => {
     expect(afterReAnalyzeA[1].result.document.fileName).toBe('dokument_2.pdf');
   });
 
+  it('obsługuje przełącznik zgody na lokalny zapis historii w localStorage', () => {
+    const storage = new MemoryStorage();
+    expect(loadHistorySavePreference(storage)).toBe(true);
+
+    setHistorySavePreference(false, storage);
+    expect(loadHistorySavePreference(storage)).toBe(false);
+
+    setHistorySavePreference(true, storage);
+    expect(loadHistorySavePreference(storage)).toBe(true);
+  });
+
   it('czyści historię z localStorage oraz działa bezpiecznie przy zablokowanym Storage', () => {
     const storage = new MemoryStorage();
     saveResultToHistory(createSampleResult(1), storage);
@@ -166,7 +183,9 @@ describe('historyStorage (F-09)', () => {
     };
 
     expect(loadHistory(throwingStorage)).toEqual([]);
+    expect(loadHistorySavePreference(throwingStorage)).toBe(true);
     expect(saveResultToHistory(createSampleResult(2), throwingStorage)).toHaveLength(1);
+    expect(() => setHistorySavePreference(false, throwingStorage)).not.toThrow();
     expect(() => clearHistory(throwingStorage)).not.toThrow();
   });
 });

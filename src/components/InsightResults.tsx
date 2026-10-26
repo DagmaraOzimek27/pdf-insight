@@ -10,11 +10,12 @@ import { UI_COPY } from '../lib/uiCopy';
 
 export interface InsightResultsProps {
   result: PdfInsightResult;
+  omittedScanPages?: ReadonlyArray<number>;
 }
 
 type ResultTab = 'structured' | 'json';
 
-export function InsightResults({ result }: InsightResultsProps) {
+export function InsightResults({ result, omittedScanPages = [] }: InsightResultsProps) {
   const [activeTab, setActiveTab] = useState<ResultTab>('structured');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -139,6 +140,13 @@ export function InsightResults({ result }: InsightResultsProps) {
         <p className="copy-error-note" role="alert">
           {UI_COPY.results.copyErrorHint}
         </p>
+      ) : null}
+
+      {omittedScanPages.length > 0 ? (
+        <div className="scan-limit-warning" role="alert">
+          <strong>{UI_COPY.results.scanLimitWarningTitle}</strong>{' '}
+          <span>{UI_COPY.results.scanLimitWarningBody(omittedScanPages)}</span>
+        </div>
       ) : null}
 
       {activeTab === 'structured' ? (

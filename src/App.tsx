@@ -9,7 +9,9 @@ import { StatusBanner, type BannerState } from './components/StatusBanner';
 import {
   clearHistory,
   loadHistory,
+  loadHistorySavePreference,
   saveResultToHistory,
+  setHistorySavePreference,
   type HistoryEntry,
 } from './lib/historyStorage';
 import { PdfExtractionError, extractPdfContent } from './lib/pdfExtractor';
@@ -18,8 +20,12 @@ import { UI_COPY } from './lib/uiCopy';
 
 export function App() {
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>(() => loadHistory());
+  const [saveHistoryEnabled, setSaveHistoryEnabled] = useState<boolean>(() =>
+    loadHistorySavePreference(),
+  );
   const [activeResult, setActiveResult] = useState<PdfInsightResult | null>(null);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+  const [omittedScanPages, setOmittedScanPages] = useState<number[]>([]);
   const [lastSelectedFile, setLastSelectedFile] = useState<File | null>(null);
   const [bannerState, setBannerState] = useState<BannerState>({ kind: 'idle' });
 
@@ -33,11 +39,20 @@ export function App() {
 
   const isAnalyzing = bannerState.kind === 'loading';
 
+  const handleToggleSaveHistory = (enabled: boolean) => {
+    setSaveHistoryEnabled(enabled);
+    setHistorySavePreference(enabled);
+  };
+
   const runFileAnalysis = async (file: File) => {
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // Natychmiastowe wyczyszczenie poprzedniego wyniku zapobiega pomyleniu starej analizy z nową lub z błędem nowego pliku.
+    setActiveResult(null);
+    setActiveHistoryId(null);
+    setOmittedScanPages([]);
     setLastSelectedFile(file);
     setBannerState({
       kind: 'loading',
@@ -45,6 +60,7 @@ export function App() {
       fileSize: file.size,
       stageMessage: UI_COPY.loadingState.validatingFile,
       scannedCount: 0,
+      omittedScanPages: [],
     });
 
     try {
@@ -66,13 +82,15 @@ export function App() {
         return;
       }
 
-      const scannedCount = extracted.scannedPageNumbers.length;
+      const renderedCount = extracted.renderedScanPageNumbers.length;
+      const omittedPages = extracted.omittedScanPageNumbers;
       setBannerState({
         kind: 'loading',
         fileName: file.name,
         fileSize: file.size,
         stageMessage: UI_COPY.loadingState.analyzingDocument,
-        scannedCount,
+        scannedCount: renderedCount,
+        omittedScanPages: omittedPages,
       });
 
       const insightResult = await analyzeExtractedPdf(extracted, {
@@ -106,9 +124,15 @@ export function App() {
         return;
       }
 
-      const updatedHistory = saveResultToHistory(insightResult);
-      setHistoryEntries(updatedHistory);
-      setActiveHistoryId(updatedHistory[0]?.id ?? null);
+      if (saveHistoryEnabled) {
+        const updatedHistory = saveResultToHistory(insightResult);
+        setHistoryEntries(updatedHistory);
+        setActiveHistoryId(updatedHistory[0]?.id ?? null);
+      } else {
+        setActiveHistoryId(null);
+      }
+
+      setOmittedScanPages(omittedPages);
       setActiveResult(insightResult);
       setBannerState({ kind: 'idle' });
     } catch (error: unknown) {
@@ -156,6 +180,7 @@ export function App() {
     if (isAnalyzing) {
       return;
     }
+    setOmittedScanPages([]);
     setActiveResult(entry.result);
     setActiveHistoryId(entry.id);
     setBannerState({ kind: 'idle' });
@@ -165,6 +190,8 @@ export function App() {
     clearHistory();
     setHistoryEntries([]);
     setActiveHistoryId(null);
+    setActiveResult(null);
+    setOmittedScanPages([]);
   };
 
   return (
@@ -175,6 +202,8 @@ export function App() {
         <PdfDropzone
           disabled={isAnalyzing}
           hasActiveResult={activeResult !== null}
+          saveHistoryEnabled={saveHistoryEnabled}
+          onToggleSaveHistory={handleToggleSaveHistory}
           onFileSelected={(file) => {
             void runFileAnalysis(file);
           }}
@@ -191,6 +220,7 @@ export function App() {
           <InsightResults
             key={`${activeHistoryId ?? activeResult.document.fileName}`}
             result={activeResult}
+            omittedScanPages={omittedScanPages}
           />
         ) : bannerState.kind === 'idle' ? (
           <EmptyStateGuide />

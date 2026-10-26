@@ -279,10 +279,38 @@ button {
   font-size: 0.84375rem;
   line-height: 1.5;
   color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
 }
 
 .privacy-notice__label {
   color: var(--text-primary);
+}
+
+.history-opt-in {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.84375rem;
+}
+
+.history-opt-in input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0.18rem 0 0;
+  accent-color: var(--crimson);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.history-opt-in__hint {
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 /* Karty statusu ładowania i błędu (F-06) */
@@ -379,6 +407,19 @@ button {
   border-radius: var(--radius-sm);
   font-size: 0.84375rem;
   color: var(--text-secondary);
+}
+
+.status-card__scan-warning,
+.scan-limit-warning {
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  background-color: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-left: 4px solid #b45309;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-primary);
 }
 
 .status-card__actions {

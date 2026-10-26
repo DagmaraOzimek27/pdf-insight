@@ -26,7 +26,22 @@ export const MAX_AI_ATTEMPTS = 2; // 1 próba podstawowa + maksymalnie 1 ponowna
 export const MAX_VALIDATION_ISSUES_IN_FEEDBACK = 5;
 export const MAX_CHUNKS_TO_ANALYZE = 6;
 
+export const ALLOWED_RETRY_CODES = [
+  'INVALID_JSON_RESPONSE',
+  'DOCUMENT_METADATA_FORMAT',
+  'SUMMARY_SENTENCE_COUNT',
+  'KEY_POINTS_COUNT',
+  'ENTITIES_FORMAT',
+  'AMOUNTS_ISO4217',
+  'DATES_ISO8601',
+  'KEYWORDS_FORMAT',
+  'SCHEMA_MISMATCH',
+] as const;
+
+export type ValidationRetryCode = (typeof ALLOWED_RETRY_CODES)[number];
+
 export const HISTORY_STORAGE_KEY = 'pdf-insight:history:v1';
+export const HISTORY_OPT_IN_STORAGE_KEY = 'pdf-insight:save-history:v1';
 export const MAX_HISTORY_ITEMS = 10;
 export const COPY_FEEDBACK_DURATION_MS = 2_200;
 export const MIN_SUPPORTED_VIEWPORT_PX = 360;

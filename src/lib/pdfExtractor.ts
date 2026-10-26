@@ -41,6 +41,8 @@ export interface ExtractedPdfDocument {
   fullText: string;
   pages: ExtractedPage[];
   scannedPageNumbers: number[];
+  renderedScanPageNumbers: number[];
+  omittedScanPageNumbers: number[];
   chunks: DocumentChunk[];
 }
 
@@ -80,6 +82,28 @@ export function configurePdfWorker(): string {
 export function isScannedPageText(text: string): boolean {
   const nonWhitespaceLength = text.replace(/\s+/g, '').length;
   return nonWhitespaceLength < MIN_TEXT_CHARS_PER_PAGE;
+}
+
+// Rozdziela wykryte strony skanów na odczytane wizyjnie oraz pominięte po przekroczeniu limitu MAX_SCANNED_PAGE_IMAGES.
+export function partitionScannedPageNumbers(pages: ReadonlyArray<ExtractedPage>): {
+  renderedScanPageNumbers: number[];
+  omittedScanPageNumbers: number[];
+} {
+  const renderedScanPageNumbers: number[] = [];
+  const omittedScanPageNumbers: number[] = [];
+
+  for (const page of pages) {
+    if (!page.isScanned) {
+      continue;
+    }
+    if (page.scanImage !== null) {
+      renderedScanPageNumbers.push(page.pageNumber);
+    } else {
+      omittedScanPageNumbers.push(page.pageNumber);
+    }
+  }
+
+  return { renderedScanPageNumbers, omittedScanPageNumbers };
 }
 
 export function formatExtractedTextItems(items: ReadonlyArray<unknown>): string {
@@ -195,7 +219,11 @@ export function chunkDocumentPages(
   for (const page of pages) {
     const header = `[Strona ${page.pageNumber}]`;
     const body =
-      page.isScanned && !page.text ? '(Strona zeskanowana — treść na obrazie)' : page.text;
+      page.isScanned && !page.text
+        ? page.scanImage
+          ? '(Strona zeskanowana — treść na obrazie)'
+          : '(Strona zeskanowana poza limitem obrazów — brak odczytu wizyjnego tej strony)'
+        : page.text;
     const formattedPage = `${header}\n${body}`;
 
     if (formattedPage.length > maxCharsPerChunk) {
@@ -314,8 +342,8 @@ export async function extractPdfContent(
       .map((page) => `[Strona ${page.pageNumber}]\n${page.text}`)
       .join('\n\n');
 
-    const hasAnyReadableContent =
-      fullText.trim().length > 0 || pages.some((page) => page.scanImage !== null);
+    const { renderedScanPageNumbers, omittedScanPageNumbers } = partitionScannedPageNumbers(pages);
+    const hasAnyReadableContent = fullText.trim().length > 0 || renderedScanPageNumbers.length > 0;
 
     if (!hasAnyReadableContent) {
       throw new PdfExtractionError(
@@ -333,6 +361,8 @@ export async function extractPdfContent(
       fullText,
       pages,
       scannedPageNumbers,
+      renderedScanPageNumbers,
+      omittedScanPageNumbers,
       chunks,
     };
   } catch (error: unknown) {

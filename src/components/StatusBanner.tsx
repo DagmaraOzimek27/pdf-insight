@@ -9,6 +9,7 @@ export type BannerState =
       fileSize: number;
       stageMessage: string;
       scannedCount: number;
+      omittedScanPages: ReadonlyArray<number>;
     }
   | {
       kind: 'error';
@@ -54,9 +55,15 @@ export function StatusBanner({ state, onRetry, onCancel, onDismissError }: Statu
 
         <p className="status-card__stage">{state.stageMessage}</p>
 
-        {state.scannedCount > 0 ? (
+        {state.scannedCount > 0 && state.omittedScanPages.length === 0 ? (
           <p className="status-card__scan-note">
             {UI_COPY.loadingState.scansDetectedHint(state.scannedCount)}
+          </p>
+        ) : null}
+
+        {state.omittedScanPages.length > 0 ? (
+          <p className="status-card__scan-warning">
+            {UI_COPY.loadingState.scansOmittedWarning(state.scannedCount, state.omittedScanPages)}
           </p>
         ) : null}
       </div>

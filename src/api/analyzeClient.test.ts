@@ -31,7 +31,7 @@ function createValidInsightPayload(overrides: Partial<PdfInsightResult> = {}): P
   };
 }
 
-describe('analyzeClient (walidacja Zod, 1x retry i długie dokumenty F-08)', () => {
+describe('analyzeClient (walidacja Zod, bezpieczne retryCodes i długie dokumenty F-08)', () => {
   it('zwraca wynik przy pierwszej próbie, gdy odpowiedź AI przechodzi walidację Zod', async () => {
     const mockFetch = vi
       .fn<typeof fetch>()
@@ -55,7 +55,7 @@ describe('analyzeClient (walidacja Zod, 1x retry i długie dokumenty F-08)', () 
     expect(result.document.pages).toBe(12);
   });
 
-  it('wykonuje automatycznie 1 ponowną próbę (retry), gdy 1. odpowiedź AI ma błędną walutę "zł", i zwraca poprawiony wynik', async () => {
+  it('wykonuje automatycznie 1 ponowną próbę z typowanym kodem retryCodes, gdy 1. odpowiedź AI ma błędną walutę "zł"', async () => {
     const invalidFirstAttempt = createValidInsightPayload({
       amounts: [{ value: 12500, currency: 'zł', context: 'wynagrodzenie' }],
     });
@@ -83,9 +83,11 @@ describe('analyzeClient (walidacja Zod, 1x retry i długie dokumenty F-08)', () 
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
     const secondCallBody = JSON.parse(String(mockFetch.mock.calls[1][1]?.body)) as {
-      validationFeedback?: string;
+      retryCodes?: string[];
+      validationFeedback?: unknown;
     };
-    expect(secondCallBody.validationFeedback).toContain('amounts.0.currency');
+    expect(secondCallBody.validationFeedback).toBeUndefined();
+    expect(secondCallBody.retryCodes).toEqual(['AMOUNTS_ISO4217']);
     expect(result.amounts[0]?.currency).toBe('PLN');
   });
 
@@ -154,6 +156,8 @@ describe('analyzeClient (walidacja Zod, 1x retry i długie dokumenty F-08)', () 
       fullText: 'Pełny tekst',
       pages: [],
       scannedPageNumbers: [],
+      renderedScanPageNumbers: [],
+      omittedScanPageNumbers: [],
       chunks: [
         {
           chunkIndex: 0,

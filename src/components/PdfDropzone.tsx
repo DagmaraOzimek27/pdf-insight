@@ -11,16 +11,25 @@ import { UI_COPY } from '../lib/uiCopy';
 export interface PdfDropzoneProps {
   disabled: boolean;
   hasActiveResult: boolean;
+  saveHistoryEnabled: boolean;
+  onToggleSaveHistory: (enabled: boolean) => void;
   onFileSelected: (file: File) => void;
 }
 
-export function PdfDropzone({ disabled, hasActiveResult, onFileSelected }: PdfDropzoneProps) {
+export function PdfDropzone({
+  disabled,
+  hasActiveResult,
+  saveHistoryEnabled,
+  onToggleSaveHistory,
+  onFileSelected,
+}: PdfDropzoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const dragDepthRef = useRef(0);
 
   const constraintsId = useId();
   const privacyId = useId();
+  const historyToggleId = useId();
   const dropzoneIconSrc = `${import.meta.env.BASE_URL}dropzone-icon.svg`;
 
   const openFilePicker = () => {
@@ -153,8 +162,24 @@ export function PdfDropzone({ disabled, hasActiveResult, onFileSelected }: PdfDr
       </div>
 
       <div id={privacyId} className="privacy-notice">
-        <strong className="privacy-notice__label">{UI_COPY.dropzone.privacyLabel}</strong>{' '}
-        <span>{UI_COPY.dropzone.privacyNotice}</span>
+        <div>
+          <strong className="privacy-notice__label">{UI_COPY.dropzone.privacyLabel}</strong>{' '}
+          <span>{UI_COPY.dropzone.privacyNotice}</span>
+        </div>
+
+        <label htmlFor={historyToggleId} className="history-opt-in">
+          <input
+            id={historyToggleId}
+            type="checkbox"
+            checked={saveHistoryEnabled}
+            disabled={disabled}
+            onChange={(event) => onToggleSaveHistory(event.target.checked)}
+          />
+          <span>
+            <strong>{UI_COPY.dropzone.historyToggleLabel}</strong>{' '}
+            <span className="history-opt-in__hint">{UI_COPY.dropzone.historyToggleHint}</span>
+          </span>
+        </label>
       </div>
     </section>
   );

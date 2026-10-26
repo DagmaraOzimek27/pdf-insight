@@ -10,6 +10,7 @@ import {
   configurePdfWorker,
   formatExtractedTextItems,
   isScannedPageText,
+  partitionScannedPageNumbers,
   type ExtractedPage,
 } from './pdfExtractor';
 
@@ -124,6 +125,27 @@ describe('pdfExtractor helpers (F-02, F-08, F-10)', () => {
     expect(chunks[1]?.endPage).toBe(3);
     expect(chunks[1]?.scannedImages).toEqual([scanImage]);
     expect(chunks[1]?.totalChunks).toBe(2);
+  });
+
+  it('jawnie wyodrębnia numery pominiętych skanów po przekroczeniu limitu MAX_SCANNED_PAGE_IMAGES', () => {
+    const sampleScan = {
+      pageNumber: 1,
+      mimeType: 'image/jpeg' as const,
+      base64Data: 'scan-1',
+    };
+    const pages: ExtractedPage[] = [
+      { pageNumber: 1, text: '', isScanned: true, scanImage: sampleScan },
+      { pageNumber: 2, text: 'Treść tekstowa umowy', isScanned: false, scanImage: null },
+      { pageNumber: 6, text: '', isScanned: true, scanImage: null },
+      { pageNumber: 7, text: '', isScanned: true, scanImage: null },
+    ];
+
+    const partitioned = partitionScannedPageNumbers(pages);
+    expect(partitioned.renderedScanPageNumbers).toEqual([1]);
+    expect(partitioned.omittedScanPageNumbers).toEqual([6, 7]);
+
+    const chunks = chunkDocumentPages(pages);
+    expect(chunks[0]?.text).toContain('poza limitem obrazów');
   });
 
   it('bezpiecznie dzieli pojedynczą stronę przekraczającą maksymalny rozmiar fragmentu', () => {

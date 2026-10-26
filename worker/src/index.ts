@@ -1,3 +1,25 @@
+import {
+  CORS_MAX_AGE_SECONDS,
+  DEFAULT_ALLOWED_ORIGINS,
+  DEFAULT_GEMINI_MODEL,
+  GEMINI_API_BASE_URL,
+  GEMINI_TEMPERATURE,
+  MAX_IMAGES_PER_REQUEST,
+  MAX_REQUEST_BODY_BYTES,
+  MAX_TEXT_LENGTH,
+  RATE_LIMIT_MAX_REQUESTS,
+  RATE_LIMIT_RETRY_AFTER_SECONDS,
+  RATE_LIMIT_WINDOW_MS,
+} from './config';
+
+export {
+  MAX_IMAGES_PER_REQUEST,
+  MAX_REQUEST_BODY_BYTES,
+  MAX_TEXT_LENGTH,
+  RATE_LIMIT_MAX_REQUESTS,
+  RATE_LIMIT_WINDOW_MS,
+};
+
 export interface WorkerEnv {
   GEMINI_API_KEY?: string;
   ALLOWED_ORIGINS?: string;
@@ -23,19 +45,6 @@ export interface AnalyzeRequestPayload {
   validationFeedback?: string;
 }
 
-export const MAX_REQUEST_BODY_BYTES = 6 * 1024 * 1024; // 6 MB limit żądania HTTP
-export const MAX_TEXT_LENGTH = 80_000;
-export const MAX_IMAGES_PER_REQUEST = 5;
-export const RATE_LIMIT_WINDOW_MS = 60_000;
-export const RATE_LIMIT_MAX_REQUESTS = 15;
-
-const DEFAULT_ALLOWED_ORIGINS = [
-  'https://dagmaraozimek27.github.io',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-];
-const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest';
-
 interface RateLimitBucket {
   count: number;
   resetAt: number;
@@ -49,7 +58,7 @@ export function resetRateLimiterForTests(): void {
 
 export function parseAllowedOrigins(rawOrigins?: string): string[] {
   if (!rawOrigins || !rawOrigins.trim()) {
-    return DEFAULT_ALLOWED_ORIGINS;
+    return [...DEFAULT_ALLOWED_ORIGINS];
   }
   return rawOrigins
     .split(',')
@@ -72,7 +81,7 @@ function buildCorsHeaders(allowedOrigin: string): Record<string, string> {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '86400',
+    'Access-Control-Max-Age': CORS_MAX_AGE_SECONDS,
     Vary: 'Origin',
   };
 }
@@ -284,7 +293,7 @@ export function buildGeminiRequestBody(payload: AnalyzeRequestPayload): Record<s
       },
     ],
     generationConfig: {
-      temperature: 0.1,
+      temperature: GEMINI_TEMPERATURE,
       responseMimeType: 'application/json',
       responseSchema: GEMINI_RESPONSE_SCHEMA,
     },
@@ -351,7 +360,7 @@ export async function handleWorkerRequest(
       },
       429,
       allowedOrigin,
-      { 'Retry-After': '60' },
+      { 'Retry-After': RATE_LIMIT_RETRY_AFTER_SECONDS },
     );
   }
 
@@ -397,7 +406,7 @@ export async function handleWorkerRequest(
   }
 
   const modelName = env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
-  const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent`;
+  const geminiEndpoint = `${GEMINI_API_BASE_URL}/${encodeURIComponent(modelName)}:generateContent`;
 
   try {
     // Klucz API przekazujemy wyłącznie w nagłówku x-goog-api-key (nigdy w parametrze URL).

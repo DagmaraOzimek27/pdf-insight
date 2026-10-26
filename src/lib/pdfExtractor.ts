@@ -1,14 +1,17 @@
 import { GlobalWorkerOptions, getDocument, type PDFPageProxy } from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import {
+  DEFAULT_MAX_CHARS_PER_CHUNK,
+  JPEG_DATA_URL_PREFIX,
+  MAX_SCANNED_PAGE_IMAGES,
+  MIN_CHUNK_BODY_BUDGET_CHARS,
+  MIN_TEXT_CHARS_PER_PAGE,
+  SCAN_JPEG_QUALITY,
+  SCAN_RENDER_SCALE,
+} from './config';
 import { validatePdfFile } from './pdfValidator';
 
-export const MIN_TEXT_CHARS_PER_PAGE = 25;
-export const MAX_SCANNED_PAGE_IMAGES = 5;
-export const DEFAULT_MAX_CHARS_PER_CHUNK = 24_000;
-
-const SCAN_RENDER_SCALE = 1.5;
-const SCAN_JPEG_QUALITY = 0.82;
-const JPEG_DATA_URL_PREFIX = 'data:image/jpeg;base64,';
+export { DEFAULT_MAX_CHARS_PER_CHUNK, MAX_SCANNED_PAGE_IMAGES, MIN_TEXT_CHARS_PER_PAGE };
 
 export interface ScannedPageImage {
   pageNumber: number;
@@ -202,7 +205,10 @@ export function chunkDocumentPages(
         activeLength = 0;
       }
 
-      const bodyBudget = Math.max(500, maxCharsPerChunk - header.length - 16);
+      const bodyBudget = Math.max(
+        MIN_CHUNK_BODY_BUDGET_CHARS,
+        maxCharsPerChunk - header.length - 16,
+      );
       const parts = splitOversizedText(body, bodyBudget);
       parts.forEach((part, partIdx) => {
         rawChunks.push({

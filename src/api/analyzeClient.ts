@@ -1,10 +1,15 @@
 import type { ZodIssue } from 'zod';
+import {
+  DEFAULT_DEV_API_URL,
+  MAX_AI_ATTEMPTS,
+  MAX_CHUNKS_TO_ANALYZE,
+  MAX_VALIDATION_ISSUES_IN_FEEDBACK,
+  REQUEST_TIMEOUT_MS,
+} from '../lib/config';
 import type { ExtractedPdfDocument, ScannedPageImage } from '../lib/pdfExtractor';
 import { validatePdfInsight, type PdfInsightResult } from '../lib/schema';
 
-export const MAX_CHUNKS_TO_ANALYZE = 6;
-const REQUEST_TIMEOUT_MS = 28_000;
-const DEFAULT_DEV_API_URL = 'http://localhost:8787';
+export { MAX_CHUNKS_TO_ANALYZE };
 
 export type AnalysisProgressStage =
   | { stage: 'analyzing'; message: string }
@@ -53,7 +58,7 @@ export function resolveApiBaseUrl(explicitUrl?: string): string {
 
 function formatValidationIssues(issues: ReadonlyArray<ZodIssue>): string {
   return issues
-    .slice(0, 5)
+    .slice(0, MAX_VALIDATION_ISSUES_IN_FEEDBACK)
     .map((issue) => {
       const path = issue.path.length > 0 ? issue.path.join('.') : 'root';
       return `${path}: ${issue.message}`;
@@ -177,7 +182,7 @@ export async function requestValidatedInsight(
 
   let feedbackForRetry: string | undefined;
 
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+  for (let attempt = 1; attempt <= MAX_AI_ATTEMPTS; attempt += 1) {
     if (attempt === 2) {
       options.onProgress?.({
         stage: 'retrying',

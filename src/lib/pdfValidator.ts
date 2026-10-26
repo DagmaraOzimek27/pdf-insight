@@ -1,6 +1,6 @@
-export const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB zgodnie z wymogiem F-01
-const PDF_HEADER_PROBE_BYTES = 1024;
-const PDF_MAGIC_SIGNATURE = '%PDF-';
+import { MAX_PDF_SIZE_BYTES, PDF_HEADER_PROBE_BYTES, PDF_MAGIC_SIGNATURE } from './config';
+
+export { MAX_PDF_SIZE_BYTES };
 
 export type PdfValidationResult = { valid: true } | { valid: false; error: string };
 

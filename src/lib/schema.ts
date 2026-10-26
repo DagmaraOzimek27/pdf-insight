@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import {
+  KEY_POINTS_MAX_ITEMS,
+  KEY_POINTS_MIN_ITEMS,
+  SUMMARY_MAX_SENTENCES,
+  SUMMARY_MIN_SENTENCES,
+} from './config';
 
 export const DOCUMENT_TYPES = ['faktura', 'umowa', 'oferta', 'raport', 'inne'] as const;
 
@@ -123,14 +129,19 @@ export const pdfInsightSchema = z
       .refine(
         (text) => {
           const count = countSentences(text);
-          return count >= 3 && count <= 5;
+          return count >= SUMMARY_MIN_SENTENCES && count <= SUMMARY_MAX_SENTENCES;
         },
-        { message: 'Podsumowanie musi składać się z 3 do 5 zdań.' },
+        {
+          message: `Podsumowanie musi składać się z ${SUMMARY_MIN_SENTENCES} do ${SUMMARY_MAX_SENTENCES} zdań.`,
+        },
       ),
     keyPoints: z
       .array(z.string().trim().min(1))
-      .min(3, 'Wymagane są co najmniej 3 kluczowe punkty.')
-      .max(7, 'Dopuszczalne jest maksymalnie 7 kluczowych punktów.'),
+      .min(KEY_POINTS_MIN_ITEMS, `Wymagane są co najmniej ${KEY_POINTS_MIN_ITEMS} kluczowe punkty.`)
+      .max(
+        KEY_POINTS_MAX_ITEMS,
+        `Dopuszczalne jest maksymalnie ${KEY_POINTS_MAX_ITEMS} kluczowych punktów.`,
+      ),
     entities: entitiesSchema,
     amounts: z.array(amountItemSchema),
     dates: z.array(dateItemSchema),

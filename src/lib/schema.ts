@@ -61,11 +61,26 @@ export function countSentences(text: string): number {
     .replace(/\b[Ss]p\.\s*z\s*o\.o\./gu, 'sp_ z o_o.')
     .replace(/\b(?:S\.A\.|s\.a\.)(?!\s+\p{Lu}|\s*$)/gu, 'S_A_')
     .replace(/\b(?:S\.A\.|s\.a\.)/gu, 'S_A.')
+    // Skróty liczbowo-jednostkowe maskujemy tylko przed małą literą lub cyfrą (nie zjada "ok." ani "r." na końcu zdania)
     .replace(
-      /\b(ok|np|tj|tzn|ul|al|nr|ust|art|pkt|poz|zał|wg|dot|por|im|św|dr|inż|prof|mr|mrs|ms|vs|approx)\./gi,
-      '$1_',
+      /\b(?:[Oo]k|[Rr]|[Mm]ies|[Tt]ys|[Mm]ln|[Mm]ld|[Gg]odz|[Mm]in|[Ss]ek|[Ss]tr|[Uu]st|[Aa]rt|[Pp]kt|[Pp]oz|[Zz]ał|[Nn]r|[Aa]pprox)\.(?=\s+[\p{Ll}\d])/gu,
+      (match) => `${match.slice(0, -1)}_`,
     )
-    .replace(/\b(r|mies|tys|mln|mld|godz|min|sek|str)\.(?!\s+\p{Lu}|\s*$)/gu, '$1_');
+    // Tytuły i ulice bez flagi "i", aby nie zjadać wielkoliterowych akronimów (np. "MS.", "AL.") na końcu zdania
+    .replace(
+      /\b(?:[Uu]l|[Aa]l|[Śś]w|[Dd]r|[Ii]nż|[Pp]rof|Mr|Mrs|Ms)\.(?=\s+[\p{L}\d])/gu,
+      (match) => `${match.slice(0, -1)}_`,
+    )
+    // "im." wyłącznie w znaczeniu "imienia" po nazwie instytucji/ulicy, aby nie zjadać zaimka "im." kończącego zdanie
+    .replace(
+      /(?<=\b(?:[Ss]zko\p{L}+|[Ss]zpital\p{L}*|[Uu]niwersytet\p{L}*|[Aa]kademi\p{L}+|[Ii]nstytut\p{L}*|[Ff]undacj\p{L}+|[Pp]ark\p{L}*|[Tt]eatr\p{L}*|[Mm]uze\p{L}+|[Oo]środ\p{L}+|[Cc]entr\p{L}+|[Uu]l_|[Aa]l_)\s+)im\.(?=\s+\p{Lu})/gu,
+      'im_',
+    )
+    // Małe skróty wyliczeniowe wewnątrz zdania (np. przed małą literą, cyfrą lub nazwą własną podmiotu)
+    .replace(
+      /\b(?:np|tj|tzn|wg|dot|por|vs)\.(?=\s+[\p{L}\d"„(])/gu,
+      (match) => `${match.slice(0, -1)}_`,
+    );
 
   return normalized
     .split(/(?:[.!?]+|…)['"”)]*(?:\s+|$)/u)

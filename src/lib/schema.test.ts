@@ -113,6 +113,16 @@ describe('pdfInsightSchema', () => {
     expect(countSentences(text)).toBe(3);
   });
 
+  it('nie zjada kropki kończącej zdanie po słowach "ok.", zaimku "im." ani akronimach "MS." / "DOT."', () => {
+    const endingWithPronounIm =
+      'Uprawnienia administracyjne przekazano również im. Kolejny etap obejmuje integrację, np. SAP Business One. Wdrożenie rusza przy ul. Prostej 12.';
+    expect(countSentences(endingWithPronounIm)).toBe(3);
+
+    const endingWithOkAndAcronym =
+      'Wstępny audyt bezpieczeństwa wypadł ok. Wdrożono środowisko chmurowe MS. Spotkanie odbyło się w Szkole im. Adama Mickiewicza.';
+    expect(countSentences(endingWithOkAndAcronym)).toBe(3);
+  });
+
   it('odrzuca keyPoints zawierające mniej niż 3 lub więcej niż 7 elementów', () => {
     const tooFew = createValidPayload();
     tooFew.keyPoints = ['Punkt 1', 'Punkt 2'];

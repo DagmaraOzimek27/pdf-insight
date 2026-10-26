@@ -63,7 +63,7 @@ flowchart LR
 | **Walidacja danych** | `Zod` | Jedno źródło prawdy dla typów TypeScript, walidacji odpowiedzi AI (z generowaniem precyzyjnego feedbacku dla `1x retry`) oraz bezpiecznego odczytu z `localStorage`. |
 | **Backend Proxy** | Cloudflare Workers (`workerd`) | Start poniżej `5 ms` na brzegu sieci bez usypiania kontenera (kluczowe dla utrzymania pełnej analizy poniżej `30 s`). |
 | **Model AI** | Google Gemini Flash (`gemini-3.5-flash-lite` + *fallback*) | Natywna multimodalność (jednoczesna analiza tekstu i skanów JPEG), czas odpowiedzi rzędu kilku sekund oraz automatyczny *fallback* między modelami Flash przy chwilowym przeciążeniu API (`503`/`429`). |
-| **Jakość i CI/CD** | Vitest, ESLint, Prettier, GitHub Actions | 36 testów jednostkowych oraz automatyczny pipeline blokujący wdrożenie w razie błędu formatowania, typów, lintera lub testów. |
+| **Jakość i CI/CD** | Vitest, ESLint, Prettier, GitHub Actions | 37 testów jednostkowych oraz automatyczny pipeline blokujący wdrożenie w razie błędu formatowania, typów, lintera lub testów. |
 
 ---
 

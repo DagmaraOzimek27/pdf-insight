@@ -9,7 +9,7 @@ Ten dokument opisuje w sposób transparentny przebieg budowy aplikacji **PDF Ins
 - **Środowisko programistyczne i agentowe:** Google Antigravity IDE (model z rodziny Gemini)
 - **Grafika wektorowa UI:** Affinity (natywne pliki źródłowe `.af` wyeksportowane przez Affinity MCP SDK do `logo.svg`, `favicon.svg` i `dropzone-icon.svg`)
 - **Model produkcyjny w aplikacji:** Google Gemini API (`gemini-3.5-flash-lite` z automatycznym *fallbackiem* w Cloudflare Workerze do `gemini-flash-lite-latest` i `gemini-3.8-flash`, plan rozliczeniowy *Pay-as-you-go Tier 1*)
-- **Automatyczne bramki jakości:** TypeScript (`strict`), ESLint (zakaz `any` i `console.log`), Prettier, Vitest (36 testów jednostkowych), lokalne środowisko wykonawcze `workerd` (`wrangler dev`) oraz pipeline GitHub Actions CI/CD
+- **Automatyczne bramki jakości:** TypeScript (`strict`), ESLint (zakaz `any` i `console.log`), Prettier, Vitest (37 testów jednostkowych), lokalne środowisko wykonawcze `workerd` (`wrangler dev`) oraz pipeline GitHub Actions CI/CD
 
 ---
 
@@ -119,6 +119,7 @@ Zanim przejdziemy do budowy interfejsu w Etapie 4, po przeglądzie dotychczasowe
 - **Moja weryfikacja i decyzje infrastrukturalne (człowiek):**
   - Zamiast pozostawiać klucz API na darmowym planie o ciasnych limitach w UE, podjęłam decyzję o uruchomieniu planu *Pay-as-you-go (Tier 1)* z alertem budżetowym (gwarantującego stabilną przepustowość podczas oceny zadania oraz brak trenowania modeli Google na przesyłanych dokumentach).
   - Podczas generowania klucza zauważyłam nowy prefiks formatu klucza (`AQ...` zamiast historycznego `AIza...`) i zleciłam weryfikację jego kompatybilności z endpointem przed wdrożeniem produkcyjnym.
+  - Podczas końcowego przeglądu kodu (*code review*) wychwycono przypadek brzegowy w `countSentences` (`src/lib/schema.ts`): bezwarunkowe maskowanie skrótów z flagą `gi` zjadało kropkę kończącą zdanie po polskim zaimku `im.`, słowie `ok.` oraz wielkoliterowych akronimach typu `MS.` lub `DOT.`. Rozbito reguły na kontekstowe *lookaheady* i *lookbehindy* oraz dopisano test regresyjny w `src/lib/schema.test.ts`.
 
 ---
 

@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "eslint .",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"*.{js,ts,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"*.{js,ts,json}\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"worker/src/**/*.ts\" \"*.{js,ts,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"worker/src/**/*.ts\" \"*.{js,ts,json}\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview"

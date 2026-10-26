@@ -1,0 +1,3 @@
+# Tajny klucz do Google Gemini API używany wyłącznie po stronie backendu (wrangler dev)
+# Skopiuj ten plik jako .dev.vars i wklej swój klucz — plik .dev.vars jest zablokowany w .gitignore
+GEMINI_API_KEY=twoj_klucz_gemini_api

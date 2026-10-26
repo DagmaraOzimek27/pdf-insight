@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MAX_REQUEST_BODY_BYTES, RATE_LIMIT_MAX_REQUESTS } from './config';
 import {
-  MAX_REQUEST_BODY_BYTES,
-  RATE_LIMIT_MAX_REQUESTS,
   buildGeminiRequestBody,
   handleWorkerRequest,
   resetRateLimiterForTests,
@@ -153,5 +152,32 @@ describe('Cloudflare Worker API Proxy (security & AI gateway)', () => {
     expect((calledInit?.headers as Record<string, string>)['x-goog-api-key']).toBe(
       'test-secret-gemini-key',
     );
+  });
+
+  it('przełącza się automatycznie na zapasowy model Flash, gdy główny model zwróci 503', async () => {
+    const mockFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('{"error":"high demand"}', { status: 503 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [{ content: { parts: [{ text: '{"summary":"zapasowy"}' }] } }],
+          }),
+          { status: 200 },
+        ),
+      );
+
+    const response = await handleWorkerRequest(
+      createAnalyzeRequest({
+        fileName: 'umowa.pdf',
+        totalPages: 2,
+        text: 'Treść testowa',
+      }),
+      TEST_ENV,
+      mockFetch,
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 });

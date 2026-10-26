@@ -12,7 +12,9 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"worker/src/**/*.ts\" \"*.{js,ts,json}\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "worker:dev": "wrangler dev --config worker/wrangler.toml",
+    "worker:deploy": "wrangler deploy --config worker/wrangler.toml"
   },
   "dependencies": {
     "pdfjs-dist": "^4.10.38",
@@ -34,6 +36,7 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
     "vite": "^6.3.5",
-    "vitest": "^3.1.2"
+    "vitest": "^3.1.2",
+    "wrangler": "^4.153.0"
   }
 }

@@ -2,6 +2,7 @@ import {
   CORS_MAX_AGE_SECONDS,
   DEFAULT_ALLOWED_ORIGINS,
   DEFAULT_GEMINI_MODEL,
+  FALLBACK_GEMINI_MODELS,
   GEMINI_API_BASE_URL,
   GEMINI_TEMPERATURE,
   MAX_IMAGES_PER_REQUEST,
@@ -11,14 +12,6 @@ import {
   RATE_LIMIT_RETRY_AFTER_SECONDS,
   RATE_LIMIT_WINDOW_MS,
 } from './config';
-
-export {
-  MAX_IMAGES_PER_REQUEST,
-  MAX_REQUEST_BODY_BYTES,
-  MAX_TEXT_LENGTH,
-  RATE_LIMIT_MAX_REQUESTS,
-  RATE_LIMIT_WINDOW_MS,
-};
 
 export interface WorkerEnv {
   GEMINI_API_KEY?: string;
@@ -405,23 +398,47 @@ export async function handleWorkerRequest(
     );
   }
 
-  const modelName = env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
-  const geminiEndpoint = `${GEMINI_API_BASE_URL}/${encodeURIComponent(modelName)}:generateContent`;
+  const primaryModel = env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+  const candidateModels = Array.from(new Set([primaryModel, ...FALLBACK_GEMINI_MODELS]));
+  const serializedGeminiBody = JSON.stringify(buildGeminiRequestBody(parsedBody));
 
   try {
-    // Klucz API przekazujemy wyłącznie w nagłówku x-goog-api-key (nigdy w parametrze URL).
-    const upstreamResponse = await fetchImpl(geminiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': env.GEMINI_API_KEY.trim(),
-      },
-      body: JSON.stringify(buildGeminiRequestBody(parsedBody)),
-    });
+    let upstreamResponse: Response | null = null;
+
+    // Automatyczny fallback między modelami Gemini Flash w razie chwilowego przeciążenia (503/429) lub wycofania wersji (404).
+    for (const modelName of candidateModels) {
+      const geminiEndpoint = `${GEMINI_API_BASE_URL}/${encodeURIComponent(modelName)}:generateContent`;
+      // Klucz API przekazujemy wyłącznie w nagłówku x-goog-api-key (nigdy w parametrze URL).
+      const candidateResponse = await fetchImpl(geminiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': env.GEMINI_API_KEY.trim(),
+        },
+        body: serializedGeminiBody,
+      });
+
+      upstreamResponse = candidateResponse;
+      if (candidateResponse.ok) {
+        break;
+      }
+
+      const shouldFallback =
+        candidateResponse.status === 503 ||
+        candidateResponse.status === 429 ||
+        candidateResponse.status === 404;
+      if (!shouldFallback) {
+        break;
+      }
+    }
+
+    if (!upstreamResponse) {
+      return jsonResponse({ error: 'Brak odpowiedzi z serwera modelu AI.' }, 502, allowedOrigin);
+    }
 
     if (upstreamResponse.status === 429) {
       return jsonResponse(
-        { error: 'Darmowy limit zapytań modelu AI został chwilowo wyczerpany. Spróbuj za chwilę.' },
+        { error: 'Limit zapytań modelu AI został chwilowo wyczerpany. Spróbuj za chwilę.' },
         429,
         allowedOrigin,
       );

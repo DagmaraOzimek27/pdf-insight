@@ -15,6 +15,11 @@ export const DEFAULT_ALLOWED_ORIGINS = [
   'http://127.0.0.1:5173',
 ] as const;
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest';
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
+export const FALLBACK_GEMINI_MODELS = [
+  'gemini-flash-lite-latest',
+  'gemini-3.8-flash',
+  'gemini-3.1-flash-lite',
+] as const;
 export const GEMINI_TEMPERATURE = 0.1;
 export const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';

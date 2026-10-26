@@ -30,7 +30,7 @@ Aplikacja webowa analizująca dokumenty PDF (w tym wielostronicowe umowy oraz st
   - automatyczna **1 ponowna próba (`1x retry`)** z przekazaniem listy błędów walidacji Zod, jeśli pierwsza odpowiedź modelu odbiega od schematu,
   - czytelna prezentacja 7 sekcji danych, podgląd sformatowanego JSON-a z kopiowaniem do schowka oraz eksport do pliku `.insight.json`.
 - **Stany interfejsu po polsku i lokalna historia (`F-06`, `F-09`):** Intuicyjny stan pusty, żywy postęp etapów przetwarzania z możliwością przerwania (`AbortController`), stan błędu z przyciskiem *„Spróbuj ponownie”* dla ostatniego pliku oraz lokalna historia do 10 analiz w `localStorage` (walidowana schematem Zod przy odczycie).
-- **Responsywność i dostępność:** Pełna obsługa wąskich ekranów od `360 px` bez poziomego przewijania oraz autorskie grafiki wektorowe `.svg` zaprojektowane natywnie w Affinity.
+- **Responsywność, dostępność i autorski branding:** Pełna obsługa wąskich ekranów od `360 px` bez poziomego przewijania oraz spójny zestaw grafik wektorowych `.svg` zaprojektowanych natywnie w Affinity — pełna opisówka konstrukcji znaku i palety barw znajduje się w [`docs/BRANDING.md`](./docs/BRANDING.md).
 
 ---
 
@@ -121,7 +121,9 @@ flowchart LR
 ```text
 pdf-insight/
 ├── .github/workflows/deploy.yml  # Pipeline CI/CD (bramki jakości + deploy na GitHub Pages)
-├── docs/screenshot.png           # Zrzut ekranu działającej aplikacji
+├── docs/
+│   ├── BRANDING.md               # Metryczka projektowa logo i systemu wizualnego (Affinity)
+│   └── screenshot.png            # Zrzut ekranu działającej aplikacji
 ├── public/                       # Grafiki wektorowe zaprojektowane w Affinity (logo, favicon, ikona)
 ├── src/
 │   ├── api/analyzeClient.ts      # Klient HTTP z walidacją Zod, 1x retry i scalaniem fragmentów
